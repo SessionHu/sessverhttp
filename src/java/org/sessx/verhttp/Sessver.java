@@ -45,9 +45,13 @@ public class Sessver implements java.io.Closeable {
                 try {
                     HttpConnection httpconn = new HttpConnection(socket);
                     this.conns.add(httpconn);
-                    httpconn.process();
-                    httpconn.close();
+                    try {
+                        httpconn.process();
+                    } catch(IOException e) {
+                        httpconn.trace("500 Internal Server Error", e);
+                    }
                     this.conns.remove(httpconn);
+                    httpconn.close();
                 } catch(Throwable t) {
                     Main.logger.err(Logger.xcpt2str(t));
                 }
