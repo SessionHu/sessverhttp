@@ -2,6 +2,7 @@
 build/*
 docs/*
 lib
+*.jar
 
 # vscode
 .vscode/
