@@ -4,7 +4,7 @@ package org.sessx.verhttp;
 public class Method {
 
     private static final String[] SUPPORT_METHOD_NAMES = {
-        "GET", "POST", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE"
+        "GET", "POST", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE", "CONNECT"
     };
 
     public static final Method GET     = new Method(SUPPORT_METHOD_NAMES[0]);
@@ -14,6 +14,7 @@ public class Method {
     public static final Method PUT     = new Method(SUPPORT_METHOD_NAMES[4]);
     public static final Method DELETE  = new Method(SUPPORT_METHOD_NAMES[5]);
     public static final Method TRACE   = new Method(SUPPORT_METHOD_NAMES[6]);
+    public static final Method CONNECT = new Method(SUPPORT_METHOD_NAMES[7]);
 
     private Method(String name) {
         this.name = name;
@@ -36,6 +37,8 @@ public class Method {
             return DELETE;
         } else if(SUPPORT_METHOD_NAMES[6].equals(name)) {
             return TRACE;
+        } else if(SUPPORT_METHOD_NAMES[7].equals(name)) {
+            return CONNECT;
         } else {
             throw new MessageSyntaxException("method " + name);
         }

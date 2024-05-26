@@ -3,8 +3,8 @@ package org.sessx.verhttp;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 
 public class Sessver implements java.io.Closeable {
@@ -47,8 +47,13 @@ public class Sessver implements java.io.Closeable {
                     this.conns.add(httpconn);
                     try {
                         httpconn.process();
-                    } catch(IOException e) {
-                        httpconn.trace("500 Internal Server Error", e);
+                    } catch(Throwable e) {
+                        try {
+                            Main.logger.err(Logger.xcpt2str(e));
+                            new Response(httpconn, e);
+                        } catch(IOException ioe) {
+                            Main.logger.err(Logger.xcpt2str(ioe));
+                        }
                     }
                     this.conns.remove(httpconn);
                     httpconn.close();
@@ -59,6 +64,6 @@ public class Sessver implements java.io.Closeable {
         }
     }
 
-    private List<HttpConnection> conns = new ArrayList<>();
+    private List<HttpConnection> conns = new Vector<>();
 
 }

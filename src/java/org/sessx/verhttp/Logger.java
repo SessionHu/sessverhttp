@@ -9,6 +9,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.nio.charset.StandardCharsets;
 
@@ -122,6 +124,26 @@ public class Logger implements Closeable {
         }
         // return
         return lines;
+    }
+    
+    public static String getRFCDate() {
+        return LocalDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME);
+    }
+    
+    public static String getRFCDate(LocalDateTime ldt) {
+        return ldt.format(DateTimeFormatter.RFC_1123_DATE_TIME);
+    }
+    
+    public static String getRFCDate(long millis) {
+        return LocalDateTime
+                .ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
+                .format(DateTimeFormatter.RFC_1123_DATE_TIME);
+    }
+    
+    public static LocalDateTime parseRFCDate(String text) {
+        return LocalDateTime.parse(
+                text, DateTimeFormatter.RFC_1123_DATE_TIME
+        );
     }
     
     private void log(int level, String logs) {
