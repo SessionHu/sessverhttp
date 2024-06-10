@@ -4,7 +4,6 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 
 
 public class ChunkedOutputStream extends FilterOutputStream {
@@ -22,7 +21,8 @@ public class ChunkedOutputStream extends FilterOutputStream {
     private synchronized void writeChunk(byte[] b, int off, int len)
             throws IOException
     {
-        Objects.checkFromIndexSize(off, len, b.length);
+        if ((off | len | (b.length - (len + off)) | (off + len)) < 0)
+            throw new IndexOutOfBoundsException();
         super.out.write(Integer.toHexString(len)
                                .getBytes(StandardCharsets.UTF_8));
         super.out.write(CRLF);
@@ -68,6 +68,6 @@ public class ChunkedOutputStream extends FilterOutputStream {
     private byte[] bufsingl = new byte[64];
     private int    bufindex = 0;
 
-    public static final byte[] CRLF = {(byte)'\r', (byte)'\n'};
+    public static final byte[] CRLF = {0x0d, 0x0a};
 
 }

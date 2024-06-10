@@ -45,4 +45,7 @@ public class Main {
     public static Logger logger;
     public static Sessver sessver;
 
+    public static final String SVR_ROOT = System.getProperty("user.home") +
+                                            "/.sessx/verhttp";
+
 }

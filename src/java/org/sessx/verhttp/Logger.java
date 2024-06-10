@@ -37,7 +37,7 @@ public class Logger implements Closeable {
     
     public Logger() {
         this(checkParentDir(new File(
-            System.getProperty("user.home") + "/.sessx/verhttp/logs/svr-" +
+            Main.SVR_ROOT + "/logs/svr-" +
             LocalDateTime.now().format(
                     DateTimeFormatter.ofPattern("uuuuMMdd-HHmmss")) +
             ".log"
@@ -127,7 +127,13 @@ public class Logger implements Closeable {
     }
     
     public static String getRFCDate() {
-        return LocalDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        // FIXME: java.time.temporal.UnsupportedTemporalTypeException
+        try {
+            return LocalDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        } catch(Exception e) {
+            Main.logger.err(xcpt2str(e));
+            return null;
+        }
     }
     
     public static String getRFCDate(LocalDateTime ldt) {

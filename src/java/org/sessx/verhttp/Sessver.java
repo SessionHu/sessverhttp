@@ -3,8 +3,9 @@ package org.sessx.verhttp;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 
 public class Sessver implements java.io.Closeable {
@@ -64,6 +65,7 @@ public class Sessver implements java.io.Closeable {
         }
     }
 
-    private List<HttpConnection> conns = new Vector<>();
+    private List<HttpConnection> conns =
+            Collections.synchronizedList(new ArrayList<>());
 
 }

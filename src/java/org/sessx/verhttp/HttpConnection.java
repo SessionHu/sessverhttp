@@ -1,13 +1,7 @@
 package org.sessx.verhttp;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 
 
 public class HttpConnection implements java.io.Closeable {

@@ -2,11 +2,8 @@ package org.sessx.verhttp;
 
 import java.io.InputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -272,7 +269,6 @@ public class Request {
     public Map<String, String> getHeaderFieldsCopy() {
         Map<String, String> map = new HashMap<>();
         synchronized(this.headerFields) {
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
             for(Map.Entry<String, String> e : this.headerFields.entrySet()) {
                 map.put(
                     this.nameCase.getOrDefault(e.getKey(), e.getKey()),
@@ -288,6 +284,7 @@ public class Request {
         synchronized(this.headerFields) {
             if(val == null) {
                 this.headerFields.remove(key.toLowerCase(Locale.ROOT));
+                return null;
             }
             if(!this.nameCase.containsKey(key.toLowerCase(Locale.ROOT))) {
                 this.nameCase.put(key.toLowerCase(Locale.ROOT), key);
