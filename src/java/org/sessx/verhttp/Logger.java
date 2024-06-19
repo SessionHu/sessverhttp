@@ -8,7 +8,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -38,7 +38,7 @@ public class Logger implements Closeable {
     public Logger() {
         this(checkParentDir(new File(
             Main.SVR_ROOT + "/logs/svr-" +
-            LocalDateTime.now().format(
+            OffsetDateTime.now(ZoneOffset.UTC).format(
                     DateTimeFormatter.ofPattern("uuuuMMdd-HHmmss")) +
             ".log"
         )));
@@ -101,7 +101,7 @@ public class Logger implements Closeable {
     
     private String[] format(int level, String logs) {
         // time
-        String time = LocalDateTime.now()
+        String time = OffsetDateTime.now(ZoneOffset.UTC)
                 .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
         // get StackTrace
         StackTraceElement st = Thread.currentThread().getStackTrace()[4];
@@ -127,27 +127,22 @@ public class Logger implements Closeable {
     }
     
     public static String getRFCDate() {
-        // FIXME: java.time.temporal.UnsupportedTemporalTypeException
-        try {
-            return LocalDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME);
-        } catch(Exception e) {
-            Main.logger.err(xcpt2str(e));
-            return null;
-        }
+        return OffsetDateTime.now(ZoneOffset.UTC)
+                .format(DateTimeFormatter.RFC_1123_DATE_TIME);
     }
     
-    public static String getRFCDate(LocalDateTime ldt) {
+    public static String getRFCDate(OffsetDateTime ldt) {
         return ldt.format(DateTimeFormatter.RFC_1123_DATE_TIME);
     }
     
     public static String getRFCDate(long millis) {
-        return LocalDateTime
+        return OffsetDateTime
                 .ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC)
                 .format(DateTimeFormatter.RFC_1123_DATE_TIME);
     }
     
-    public static LocalDateTime parseRFCDate(String text) {
-        return LocalDateTime.parse(
+    public static OffsetDateTime parseRFCDate(String text) {
+        return OffsetDateTime.parse(
                 text, DateTimeFormatter.RFC_1123_DATE_TIME
         );
     }

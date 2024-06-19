@@ -35,22 +35,15 @@ public class ResponseHelper {
 
     public Response send() throws IOException {
         // find file
-        File file = null; {
-            String path = this.uri.getPath();
-            if(path != null && !(path = path.trim()).isEmpty()) {
-                if(path.endsWith("/")) { // need index file
-                    // try to find index.* file
-                    File[] ls = new File(WWWROOT_PATH + path)
-                                    .listFiles();
-                    for(File f : ls) {
-                        if(f.getName().startsWith("index.")) {
-                            file = f;
-                            break;
-                        }
+        File file = new File(WWWROOT_PATH + this.uri.getPath()); {
+            if(file.exists()) {
+                // try to find index.* file
+                File[] ls = file.listFiles();
+                if(ls != null) for(File f : ls) {
+                    if(f.getName().startsWith("index.")) {
+                        file = f;
+                        break;
                     }
-                    if(file == null) file = new File(path);
-                } else { // normal
-                    file = new File(WWWROOT_PATH + path);
                 }
             }
         }
@@ -62,31 +55,26 @@ public class ResponseHelper {
                     "Last-Modified", Logger.getRFCDate(file.lastModified()));
             // read
             long length = file.length();
-            if(length < 1048576) {
-                // less than 1MiB
+            if(length < 16777216 / 1024) {
+                // less than 16MiB
                 byte[] body = new byte[(int)length];
                 in.read(body);
                 this.setContentType(body, file.getName());
                 this.response.sendBody(body);
-            } else if(length < Integer.MAX_VALUE) {
-                // more than 1MiB but less than 2^31-1
-                byte[] body = new byte[(int)length];
-                in.read(body);
-                this.setContentType(body, file.getName());
-                this.response.sendGzipBody(body);
             } else {
                 // chunked
-                this.response.setGzip(true);
                 int bufferSize = 0;
                 byte[] buffer = new byte[65536];
                 while((bufferSize = in.read(buffer,0,1024)) != -1) {
                     byte[] chunk = new byte[bufferSize];
                     for(int i = 0; i < bufferSize; i++) {
                         chunk[i] = buffer[i];
-                        if(i == 0) this.setContentType(chunk, file.getName());
+                        if(this.response.getHeaderField("Content-Type") == null)
+                            this.setContentType(chunk, file.getName());
                     }
                     this.response.sendChunkedBody(chunk);
                 }
+                this.response.sendChunkedBody(new byte[0]);
             } 
         } catch(java.io.FileNotFoundException e) {
             Main.logger.warn(Logger.xcpt2str(e));
@@ -117,7 +105,7 @@ public class ResponseHelper {
         this.response.setHeaderField(
                 "Content-Type",
                 SUFFIX_MIME.get(fname.substring(
-                        fname.indexOf(".") + 1, fname.length() - 1))
+                        fname.lastIndexOf(".") + 1, fname.length()))
         );
         // magics
         for(Map.Entry<byte[], String> e : MAGIC_MIME.entrySet()) {
@@ -135,10 +123,13 @@ public class ResponseHelper {
     public static final Map<String, String> SUFFIX_MIME;
     static {
         Map<String, String> map = new HashMap<>();
-        map.put("css", "text/css");
-        map.put("html", "text/html");
-        map.put("htm", "text/html");
-        map.put("js", "text/javascript");
+        map.put("css",   "text/css");
+        map.put("html",  "text/html");
+        map.put("htm",   "text/html");
+        map.put("js",    "text/javascript");
+        map.put("png",   "image/png");
+        map.put("ttf",   "font/ttf");
+        map.put("woff2", "font/woff2");
         SUFFIX_MIME = Collections.unmodifiableMap(map);
     }
 
@@ -147,6 +138,9 @@ public class ResponseHelper {
         Map<byte[], String> map = new HashMap<>();
         map.put(
             "<!DOCTYPE html>".getBytes(StandardCharsets.UTF_8), "text/html");
+        map.put(
+            new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A},
+            "image/png");
         MAGIC_MIME = Collections.unmodifiableMap(map);
     }
 

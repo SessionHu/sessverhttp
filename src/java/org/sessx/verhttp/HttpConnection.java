@@ -13,11 +13,11 @@ public class HttpConnection implements java.io.Closeable {
 
     public HttpConnection(Socket socket) {
         this.socket = socket;
-        Main.logger.info(
-            "Accepted connection from " +
-            this.socket.getInetAddress().getHostAddress() + ":" +
-            this.socket.getPort()
-        );
+        //Main.logger.debug(
+        //    "Accepted connection from " +
+        //    this.socket.getInetAddress().getHostAddress() + ":" +
+        //    this.socket.getPort()
+        //);
     }
 
     @Override
@@ -25,11 +25,11 @@ public class HttpConnection implements java.io.Closeable {
         if(this.socket.isClosed()) {
             return;
         }
-        Main.logger.info(
-            "Closing connection from " +
-            this.socket.getInetAddress().getHostAddress() + ":" +
-            this.socket.getPort()
-        );
+        //Main.logger.debug(
+        //    "Closing connection from " +
+        //    this.socket.getInetAddress().getHostAddress() + ":" +
+        //    this.socket.getPort()
+        //);
         this.socket.close();
     }
     
@@ -44,24 +44,24 @@ public class HttpConnection implements java.io.Closeable {
     }
 
     public void process() throws IOException {
-        if(this.socket.isClosed() ||
-           this.request  != null  ||
+        if(this.request  != null  ||
            this.response != null) 
         {
             return;
         }
         while(true) {
+            if(this.socket.isClosed()) break;
             // parse request
             this.request = null;
             this.request = new Request(this);
             // print request (for debug)
-            Main.logger.debug(this.request.getRequestLine());
-            for(java.util.Map.Entry<String, String> e :
-                this.request.getHeaderFieldsCopy().entrySet())
-            {
-                Main.logger.debug(e.getKey() + ": " + e.getValue());
-            }
-            Main.logger.debug("URI: " + request.getAbsURI());
+            Main.logger.info(this.request.getRequestLine());
+            //for(java.util.Map.Entry<String, String> e :
+            //    this.request.getHeaderFieldsCopy().entrySet())
+            //{
+            //    Main.logger.debug(e.getKey() + ": " + e.getValue());
+            //}
+            //Main.logger.debug("URI: " + request.getAbsURI());
             // send response
             this.response = null;
             this.response = new ResponseHelper(this).send();

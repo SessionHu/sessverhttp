@@ -4,7 +4,6 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
@@ -100,10 +99,13 @@ public class Request {
                 }
             }
         }
-        throw new IOException(
-            "failed to reach " + Arrays.toString(ends) +
-            " before index " + this.index
-        );
+        if(this.index != -1) {
+            throw new IOException(
+                "failed to reach end sign before index " + this.index
+            );
+        } else {
+            throw new MessageSyntaxException("empty request");
+        }
     }
     
     private static final char SP   = 0x20;
@@ -301,28 +303,15 @@ public class Request {
 
     private void absUriParser() {
         if(this.uri.getScheme() != null) {
-            this.absUri = this.uri;
+            this.absUri = uri;
             return;
         }
-        String host = this.headerFields.get("host");
-        if(host == null) {
-            if(!this.version.equals("0.9")) {
-                throw new MessageSyntaxException(BAD_REQUEST,
-                    new MessageSyntaxException("field \"Host\" not found") 
-                );
-            } else {
-                host = this.socket.getLocalAddress().getHostAddress() +
-                       ':' + this.socket.getPort();
-            }
-        }
         try {
-            StringBuilder sb = new StringBuilder();
-            sb.append("http://").append(host);
-            if(this.uri.toString().charAt(0) == '/') {
-                this.absUri = new URI(sb.append('/').toString());
-            } else {
-                this.absUri = new URI(sb.append(this.uri).toString());
-            }
+            StringBuilder sb = new StringBuilder("http://");
+            sb.append(this.version.equals("0.9") ?
+                        "0.0.0.0" : this.getHeaderField("Host"));
+            sb.append(this.uri.getPath());
+            this.absUri = new URI(sb.toString());
         } catch(java.net.URISyntaxException e) {
             throw new MessageSyntaxException(BAD_REQUEST, e);
         }

@@ -1,11 +1,9 @@
 package org.sessx.verhttp;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.zip.GZIPOutputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -33,7 +31,6 @@ public class Response {
         this.setHttpVersion(version);
         this.setStatusCode(code);
         this.setBaseHeaderFields();
-        this.sendStatusLine();
     }
     
     public Response(HttpConnection conn, Throwable t) throws IOException {
@@ -65,8 +62,7 @@ public class Response {
         }
         this.reason = HTTP_CODE_AND_REASON.get(this.code);
         this.setBaseHeaderFields();
-        this.sendStatusLine();
-        byte[] body = simpleStackTraceBody(this.code + ' ' + this.reason, t);
+        byte[] body = simpleStackTraceBody(this.code + " " + this.reason, t);
         this.setHeaderField("Content-Type", "text/plain; charset=utf-8");
         this.setHeaderField("Content-Length", String.valueOf(body.length));
         this.sendBody(body);
@@ -256,7 +252,7 @@ public class Response {
             return;
         }
         this.headerFields = Collections.unmodifiableMap(this.headerFields);
-        this.nameCase    = Collections.unmodifiableMap(this.nameCase);
+        this.nameCase     = Collections.unmodifiableMap(this.nameCase);
         StringBuilder sb;
         for(Map.Entry<String, String> e : this.headerFields.entrySet()) {
             sb = new StringBuilder();
@@ -281,11 +277,7 @@ public class Response {
     }
 
     public void sendBody(byte[] body) throws IOException {
-        if("gzip".equals(this.getHeaderField("Content-Encoding"))) {
-            this.sendGzipBody(body);
-            return;
-        } else if("gzip, chunked"
-                    .equals(this.getHeaderField("Transfer-Encoding"))) 
+        if("chunked".equals(this.getHeaderField("Transfer-Encoding")))
         {
             this.sendChunkedBody(body);
             this.sendChunkedBody(new byte[0]);
@@ -299,31 +291,7 @@ public class Response {
         this.out.write(body);
         this.stage = 4;
         this.out.flush();
-        this.out.write(ChunkedOutputStream.CRLF);
         this.setNullOutputStream();
-    }
-
-    private void setChunked() {
-        String rte = this.getHeaderField("Transfer-Encoding");
-        if(rte == null || (rte = rte.trim()).isEmpty()) {
-            this.setHeaderField("Transfer-Encoding", "chunked");
-            return;
-        }
-        String[] te = rte.split(",\\s*");
-        for(int i = 0; i < te.length; i++) {
-            if(te[i] != null && te[i].contains("chunked")) te[i] = null;
-        }
-        StringBuilder nte = new StringBuilder();
-        for(String e : te) {
-            if(e != null) {
-                nte.append(e);
-                nte.append(", ");
-            }
-        }
-        nte.append("chunked");
-        this.setHeaderField("Transfer-Encoding", nte.toString());
-        this.setHeaderField("COntent-Encoding" , null);
-        this.setHeaderField("Content-Length"   , null);
     }
 
     private void checkHeaderFields() {
@@ -331,15 +299,11 @@ public class Response {
         String ce = this.getHeaderField("Content-Encoding");
         String cl = this.getHeaderField("Content-Length");
         String ct = this.getHeaderField("Content-Type");
+        if(ce != null) {
+            ce = this.setHeaderField("Content-Encoding", null);
+        }
         if(te != null && cl != null) {
             cl = this.setHeaderField("Content-Length", null);
-        }
-        if(te != null && !te.trim().contains("chunked")) {
-            this.setChunked();
-            te = this.getHeaderField("Transfer-Encoding");
-        }
-        if(ce != null && te != null) {
-            ce = this.setHeaderField("Content-Encoding", null);
         }
         if(ct == null) {
             ct = this.setHeaderField("Content-Type", ResponseHelper.MIME_OCTET);
@@ -351,26 +315,19 @@ public class Response {
         this.setHeaderField("Date", Logger.getRFCDate());
     }
 
-    public void setGzip(boolean gzip) {
-        this.setHeaderField("Transfer-Encoding",
-                            gzip ? "gzip, chunked" : "chunked");
-        this.setHeaderField("Content-Length", null);
-    }
-
     public void sendChunkedBody(byte[] chunk) throws IOException {
-        this.setChunked();
-        this.checkHeaderFields();
-        this.checkBodySendable();
-        if(this.stage == 2) {
+        if(this.stage < 3) {
+            this.setHeaderField("Transfer-Encoding", "chunked");
+            this.setHeaderField("Content-Encoding" , null);
+            this.setHeaderField("Content-Length"   , null);
+            this.checkHeaderFields();
+            this.checkBodySendable();
             String[] te = this.getHeaderField("Transfer-Encoding")
                               .split(",\\s*");
-            for(int i = te.length - 1; i > -1; i--) {
-                if(te[i].equals("gzip")) {
-                    this.out = new GZIPOutputStream(this.out);
-                } else if(te[i].equals("chunked")) {
+            for(int i = te.length - 1; i > -1; i--)
+                if(te[i].equals("chunked"))
                     this.out = new ChunkedOutputStream(this.out);
-                }
-            }
+            this.stage = 3;
         }
         this.out.write(chunk);
         this.out.flush();
@@ -378,29 +335,6 @@ public class Response {
             this.setNullOutputStream();
             this.stage = 4;
         }
-    }
-
-    public void sendGzipBody(byte[] body) throws IOException {
-        this.setHeaderField("Transfer-Encoding", null);
-        this.setHeaderField("Content-Encoding", "gzip");
-        try(ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            GZIPOutputStream gout = new GZIPOutputStream(bout))
-        {
-            gout.write(body);
-            gout.flush();
-            body = bout.toByteArray();
-        } catch(IOException e) {
-            this.setHeaderField("Content-Encoding", null);
-            Main.logger.warn(Logger.xcpt2str(e));
-        }
-        this.setHeaderField("Content-Length", String.valueOf(body.length));
-        this.checkHeaderFields();
-        this.stage = 3;
-        this.out.write(body);
-        this.stage = 4;
-        this.out.flush();
-        this.out.write(ChunkedOutputStream.CRLF);
-        this.setNullOutputStream();
     }
 
     private void setNullOutputStream() {

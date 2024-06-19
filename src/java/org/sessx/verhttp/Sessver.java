@@ -50,8 +50,22 @@ public class Sessver implements java.io.Closeable {
                         httpconn.process();
                     } catch(Throwable e) {
                         try {
-                            Main.logger.err(Logger.xcpt2str(e));
-                            new Response(httpconn, e);
+                            Throwable c = e.getCause();
+                            boolean expectException = false;
+                            if(c != null) {
+                                boolean emptyReq =
+                                        c instanceof MessageSyntaxException &&
+                                        c.getMessage().equals("empty request");
+                                boolean connReset = 
+                                        c instanceof java.net.SocketException &&
+                                        c.getMessage().equals(
+                                                "Connection reset");
+                                expectException = emptyReq || connReset;
+                            }
+                            if(!expectException) {
+                                Main.logger.err(Logger.xcpt2str(e));
+                                new Response(httpconn, e);
+                            }
                         } catch(IOException ioe) {
                             Main.logger.err(Logger.xcpt2str(ioe));
                         }
