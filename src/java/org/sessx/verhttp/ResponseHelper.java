@@ -55,7 +55,7 @@ public class ResponseHelper {
                     "Last-Modified", Logger.getRFCDate(file.lastModified()));
             // read
             long length = file.length();
-            if(length < 16777216 / 1024) {
+            if(length < 16777216) {
                 // less than 16MiB
                 byte[] body = new byte[(int)length];
                 in.read(body);
@@ -107,6 +107,9 @@ public class ResponseHelper {
                 SUFFIX_MIME.get(fname.substring(
                         fname.lastIndexOf(".") + 1, fname.length()))
         );
+        if(this.response.getHeaderField("Content-Type") != null) {
+            return;
+        }
         // magics
         for(Map.Entry<byte[], String> e : MAGIC_MIME.entrySet()) {
             byte[] k = e.getKey();
@@ -126,8 +129,10 @@ public class ResponseHelper {
         map.put("css",   "text/css");
         map.put("html",  "text/html");
         map.put("htm",   "text/html");
+        map.put("ico",   "image/vnd.microsoft.icon");
         map.put("js",    "text/javascript");
         map.put("png",   "image/png");
+        map.put("svg",   "image/svg+xml");
         map.put("ttf",   "font/ttf");
         map.put("woff2", "font/woff2");
         SUFFIX_MIME = Collections.unmodifiableMap(map);
@@ -141,6 +146,9 @@ public class ResponseHelper {
         map.put(
             new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A},
             "image/png");
+        map.put(
+            new byte[]{0x00, 0x00, 0x01, 0x00}, "image/vnd.microsoft.icon");
+        map.put(new byte[]{0x3C, 0x3F, 0x78, 0x6D, 0x6C}, "application/xml");
         MAGIC_MIME = Collections.unmodifiableMap(map);
     }
 
