@@ -57,8 +57,17 @@ public class Sessver implements java.io.Closeable {
             this.conns.add(httpconn);
             httpconn.process();
         } catch(Throwable e) {
-            Main.logger.err(Logger.xcpt2str(e));
-            new Response(httpconn, e);
+            Throwable cause = e.getCause();
+            boolean noprt = false;
+            if(cause != null) {
+                boolean emptyReq  = cause instanceof MessageSyntaxException &&
+                                    "empty request".equals(cause.getMessage());
+                noprt = emptyReq;
+            }
+            if(!noprt) {
+                Main.logger.err(Logger.xcpt2str(e));
+                new Response(httpconn, e);
+            }
         } finally {
             this.conns.remove(httpconn);
             httpconn.close();
