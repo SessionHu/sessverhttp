@@ -51,34 +51,18 @@ public class Sessver implements java.io.Closeable {
         }, "Sessver-" + ssocket.getLocalPort()).start();
     }
 
-    private void accept(Socket socket) throws Throwable {
+    private void accept(Socket socket) throws IOException {
         HttpConnection httpconn = new HttpConnection(socket);
-        this.conns.add(httpconn);
         try {
+            this.conns.add(httpconn);
             httpconn.process();
         } catch(Throwable e) {
-            try {
-                Throwable c = e.getCause();
-                boolean expectException = false;
-                if(c != null) {
-                    boolean emptyReq  =
-                        c instanceof MessageSyntaxException &&
-                        c.getMessage().equals("empty request");
-                    boolean connReset =
-                        c instanceof java.net.SocketException &&
-                        c.getMessage().equals("Connection reset");
-                    expectException = emptyReq || connReset;
-                }
-                if(!expectException) {
-                    Main.logger.err(Logger.xcpt2str(e));
-                    new Response(httpconn, e);
-                }
-            } catch(IOException ioe) {
-                Main.logger.err(Logger.xcpt2str(ioe));
-            }
+            Main.logger.err(Logger.xcpt2str(e));
+            new Response(httpconn, e);
+        } finally {
+            this.conns.remove(httpconn);
+            httpconn.close();
         }
-        this.conns.remove(httpconn);
-        httpconn.close();
     }
 
     private List<HttpConnection> conns = new Vector<>();

@@ -17,8 +17,7 @@ public class HttpConnection implements java.io.Closeable {
 
     @Override
     public void close() throws IOException {
-        if(this.socket.isClosed()) return;
-        this.socket.close();
+        if(!this.socket.isClosed()) this.socket.close();
     }
     
     private Request request;
