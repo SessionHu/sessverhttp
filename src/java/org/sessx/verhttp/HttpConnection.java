@@ -13,23 +13,11 @@ public class HttpConnection implements java.io.Closeable {
 
     public HttpConnection(Socket socket) {
         this.socket = socket;
-        //Main.logger.debug(
-        //    "Accepted connection from " +
-        //    this.socket.getInetAddress().getHostAddress() + ":" +
-        //    this.socket.getPort()
-        //);
     }
 
     @Override
     public void close() throws IOException {
-        if(this.socket.isClosed()) {
-            return;
-        }
-        //Main.logger.debug(
-        //    "Closing connection from " +
-        //    this.socket.getInetAddress().getHostAddress() + ":" +
-        //    this.socket.getPort()
-        //);
+        if(this.socket.isClosed()) return;
         this.socket.close();
     }
     
@@ -44,11 +32,7 @@ public class HttpConnection implements java.io.Closeable {
     }
 
     public void process() throws IOException {
-        if(this.request  != null  ||
-           this.response != null) 
-        {
-            return;
-        }
+        if(this.request  != null  || this.response != null) return;
         while(true) {
             if(this.socket.isClosed()) break;
             // parse request
@@ -56,12 +40,6 @@ public class HttpConnection implements java.io.Closeable {
             this.request = new Request(this);
             // print request (for debug)
             Main.logger.info(this.request.getRequestLine());
-            //for(java.util.Map.Entry<String, String> e :
-            //    this.request.getHeaderFieldsCopy().entrySet())
-            //{
-            //    Main.logger.debug(e.getKey() + ": " + e.getValue());
-            //}
-            //Main.logger.debug("URI: " + request.getAbsURI());
             // send response
             this.response = null;
             this.response = new ResponseHelper(this).send();

@@ -268,7 +268,7 @@ public class Response {
         this.out.flush();
     }
 
-    public void checkBodySendable() throws IOException {
+    private void checkBodySendable() throws IOException {
         if(this.stage < 2) {
             this.sendHeaderFields();
         } else if(this.stage > 3) {

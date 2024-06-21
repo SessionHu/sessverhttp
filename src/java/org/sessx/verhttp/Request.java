@@ -1,6 +1,7 @@
 package org.sessx.verhttp;
 
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
@@ -62,17 +63,24 @@ public class Request {
     public Request(HttpConnection conn) throws IOException {
         this.conn   = conn;
         this.socket = this.conn.getSocket();
-        this.ignoreWhitespaces();
-        this.requestLineParser();
+        byte[] read = this.ignoreWhitespaces();
+        this.requestLineParser(read);
         this.headerFieldsParser();
         this.absUriParser();
     }
-    
+
     private String readChars(InputStream in, char[] ends, int max)
+            throws IOException
+    {
+        return this.readChars(in, ends, max, null);
+    }
+
+    private String readChars(InputStream in, char[] ends, int max, byte[] read)
             throws IOException
     {
         StringBuilder sb = new StringBuilder();
         int c;
+        int readindex = 0;
         for(int i = 0; i < max; i++) {
             // i tried to support HTTP/0.9, but failed
             //if(in.available() == 0 && !reader.ready()) {
@@ -85,8 +93,16 @@ public class Request {
             //        return sb.toString();
             //    }
             //}
-            if((c = in.read()) == -1) break;
-            this.index++;
+            if(read != null && readindex < read.length) {
+                c = read[readindex++];
+            } else {
+                c = in.read();
+                if(c == -1) {
+                    break;
+                } else {
+                    this.index++;
+                }
+            }
             if(c != '\r') {
                 sb.append((char)c);
             } else {
@@ -94,7 +110,6 @@ public class Request {
             }
             for(int j = 0; j < ends.length; j++) {
                 if(ends[j] == c) {
-                    //Main.logger.debug(sb.toString());
                     return sb.toString();
                 }
             }
@@ -119,26 +134,32 @@ public class Request {
     private static final String URI_TOO_LONG = "414 URI Too Long";
     private static final String VER_NOT_SPT  = "505 HTTP Version Not Supported";
 
-    private void ignoreWhitespaces() throws IOException {
+    private byte[] ignoreWhitespaces() throws IOException {
         InputStream in = this.socket.getInputStream();
-        if(in.markSupported()) {
-            int c;
-            in.mark(2);
-            while((c = in.read()) != -1) {
-                if(c > 0x20) {
-                    in.reset();
+        ByteArrayOutputStream read = new ByteArrayOutputStream();
+        while(true) {
+            byte b = (byte)in.read();
+            if(b == -1) {
+                break;
+            } else {
+                this.index++;
+                // skip whitespace
+                if(b >= 0x20) {
+                    read.write(b);
+                    break;
                 }
-                in.mark(2);
             }
         }
+        //Main.logger.debug(Arrays.toString(read.toByteArray()));
+        return read.toByteArray();
     }
 
-    private void requestLineParser() throws IOException {
+    private void requestLineParser(byte[] read) throws IOException {
         InputStream in = this.socket.getInputStream();
         String b;
         // method
         try {
-            b = this.readChars(in, ALL_WHITESPACE, 12).trim();
+            b = this.readChars(in, ALL_WHITESPACE, 12, read).trim();
             MessageSyntaxException.checkToken(b);
             this.method = Method.find(b);
         } catch(IOException | MessageSyntaxException e) {

@@ -3,83 +3,84 @@ package org.sessx.verhttp;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 
 public class Sessver implements java.io.Closeable {
 
-    private ServerSocket ssocket;
+    private List<ServerSocket> ssockets = new Vector<>();
 
     public Sessver(int port) throws IOException {
-        this.ssocket = new ServerSocket(port);
-        Main.logger.info("Sessver is running at port "+port);
+        this.listen(port);
+    }
+
+    public void listen(int port) throws IOException {
+        ServerSocket ssocket = new ServerSocket(port);
+        this.ssockets.add(ssocket);
+        Main.logger.info(
+            "Sessver is running at port " + ssocket.getLocalPort());
+        this.run(ssocket);
     }
 
     @Override
     public void close() throws IOException {
         Main.logger.info(this.toString()+" is closing");
-        for(HttpConnection conn : this.conns) {
-            conn.close();
-        }
-        ssocket.close();
+        for(HttpConnection conn : this.conns) conn.close();
+        for(ServerSocket ssocket : this.ssockets) ssocket.close();
     }
 
-    @Override
-    public String toString() {
-        return "Sessver@" +
-            this.ssocket.getInetAddress().getHostAddress() + ":" +
-            this.ssocket.getLocalPort();
-    }
-
-    public void acceptAll() {
-        while(true) {
-            Socket socket;
-            try {
-                socket = this.ssocket.accept();
-            } catch(IOException e) {
-                Main.logger.err(Logger.xcpt2str(e));
-                continue;
-            }
-            new Thread(() -> {
+    private void run(ServerSocket ssocket) {
+        new Thread(() -> {
+            while(!ssocket.isClosed()) {
+                int counts = 0;
                 try {
-                    HttpConnection httpconn = new HttpConnection(socket);
-                    this.conns.add(httpconn);
-                    try {
-                        httpconn.process();
-                    } catch(Throwable e) {
+                    Socket socket = ssocket.accept();
+                    new Thread(() -> {
                         try {
-                            Throwable c = e.getCause();
-                            boolean expectException = false;
-                            if(c != null) {
-                                boolean emptyReq =
-                                        c instanceof MessageSyntaxException &&
-                                        c.getMessage().equals("empty request");
-                                boolean connReset = 
-                                        c instanceof java.net.SocketException &&
-                                        c.getMessage().equals(
-                                                "Connection reset");
-                                expectException = emptyReq || connReset;
-                            }
-                            if(!expectException) {
-                                Main.logger.err(Logger.xcpt2str(e));
-                                new Response(httpconn, e);
-                            }
-                        } catch(IOException ioe) {
-                            Main.logger.err(Logger.xcpt2str(ioe));
+                            this.accept(socket);
+                        } catch(Throwable e) {
+                            Main.logger.err(Logger.xcpt2str(e));
                         }
-                    }
-                    this.conns.remove(httpconn);
-                    httpconn.close();
+                    }).start();
                 } catch(Throwable t) {
-                    Main.logger.err(Logger.xcpt2str(t));
+                    Main.logger.fatal(Logger.xcpt2str(t));
+                    if(++counts > 3) break;
                 }
-            }).start();
-        }
+            }
+        }, "Sessver-" + ssocket.getLocalPort()).start();
     }
 
-    private List<HttpConnection> conns =
-            Collections.synchronizedList(new ArrayList<>());
+    private void accept(Socket socket) throws Throwable {
+        HttpConnection httpconn = new HttpConnection(socket);
+        this.conns.add(httpconn);
+        try {
+            httpconn.process();
+        } catch(Throwable e) {
+            try {
+                Throwable c = e.getCause();
+                boolean expectException = false;
+                if(c != null) {
+                    boolean emptyReq  =
+                        c instanceof MessageSyntaxException &&
+                        c.getMessage().equals("empty request");
+                    boolean connReset =
+                        c instanceof java.net.SocketException &&
+                        c.getMessage().equals("Connection reset");
+                    expectException = emptyReq || connReset;
+                }
+                if(!expectException) {
+                    Main.logger.err(Logger.xcpt2str(e));
+                    new Response(httpconn, e);
+                }
+            } catch(IOException ioe) {
+                Main.logger.err(Logger.xcpt2str(ioe));
+            }
+        }
+        this.conns.remove(httpconn);
+        httpconn.close();
+    }
+
+    private List<HttpConnection> conns = new Vector<>();
 
 }
