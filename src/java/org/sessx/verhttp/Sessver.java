@@ -19,13 +19,15 @@ public class Sessver implements java.io.Closeable {
         ServerSocket ssocket = new ServerSocket(port);
         this.ssockets.add(ssocket);
         Main.logger.info(
-            "Sessver is running at port " + ssocket.getLocalPort());
+            Main.i18n.get("sessver.init" ,
+                this.toString(), ssocket.getLocalPort())
+        );
         this.run(ssocket);
     }
 
     @Override
     public void close() throws IOException {
-        Main.logger.info(this.toString()+" is closing");
+        Main.logger.info(Main.i18n.get("sessver.close", this.toString()));
         for(HttpConnection conn : this.conns) conn.close();
         for(ServerSocket ssocket : this.ssockets) ssocket.close();
     }

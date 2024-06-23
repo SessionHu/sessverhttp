@@ -11,7 +11,9 @@ public class Main {
 
     public static void main(String[] args) {
         // start
+        i18n = new I18N();
         args = argsParser(args);
+        args = argsHelper(args);
         logger = new Logger();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             clear();
@@ -42,18 +44,28 @@ public class Main {
         }
     }
 
-    public static void printVersionInfo() {
-        // TODO
+    private static void printVersionInfo() {
+        Package pkg = Main.class.getPackage();
+        String name = pkg.getImplementationTitle();
+        String ver  = pkg.getImplementationVersion();
+        System.out.printf("%s %s\n", name, ver);
     }
 
-    public static void printHelpInfo() {
-        // TODO
+    private static void printHelpInfo() {
+        System.out.print("Help: \n" +
+                "    -h, --help     " + i18n.get("help.help") + "\n" +
+                "    -p, --port     " + i18n.get("help.port") + "\n" +
+                "    -v, --version  " + i18n.get("help.ver") + "\n" +
+                "\n"
+        );
     }
 
-    public static String[] argsParser(String[] args) {
+    private static String[] argsParser(String[] args) {
         List<String> params = new ArrayList<>();
         Map<Character, String> aliasMap = new HashMap<>();
         aliasMap.put('p', "--port");
+        aliasMap.put('v', "--version");
+        aliasMap.put('h', "--help");
         for(int i = 0 ; i < args.length; i++) {
             if(args[i] != null && args[i].length() > 1 &&
                args[i].startsWith("-") && !args[i].startsWith("--"))
@@ -69,11 +81,34 @@ public class Main {
         }
         return args = params.toArray(new String[0]);
     }
-    
+
+    private static String[] argsHelper(String[] args) {
+        List<String> params = new ArrayList<>();
+        for(int i = 0; i < args.length; i++) {
+            switch(args[i]) {
+                case "--version":
+                    printVersionInfo();
+                    System.exit(0);
+                    break;
+                case "--help":
+                    printVersionInfo();
+                    printHelpInfo();
+                    System.exit(0);
+                    break;
+                default:
+                    params.add(args[i]);
+            }
+        }
+        return params.toArray(new String[0]);
+    }
+
     public static Logger logger;
     public static Sessver sessver;
 
     public static final String SVR_ROOT = System.getProperty("user.home") +
                                             "/.sessx/verhttp";
+
+
+    static I18N i18n;
 
 }
