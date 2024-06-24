@@ -131,6 +131,7 @@ public class ResponseHelper {
         map.put("htm",   "text/html");
         map.put("ico",   "image/vnd.microsoft.icon");
         map.put("js",    "text/javascript");
+        map.put("json",  "application/json");
         map.put("png",   "image/png");
         map.put("svg",   "image/svg+xml");
         map.put("ttf",   "font/ttf");
