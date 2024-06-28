@@ -61,7 +61,7 @@ public class Sessver implements java.io.Closeable {
         } catch(Throwable e) {
             Throwable cause = e.getCause();
             boolean noprt = false;
-            if(cause != null) {
+            if(cause != null || (cause = e) != null) {
                 boolean emptyReq  = cause instanceof MessageSyntaxException &&
                                     "empty request".equals(cause.getMessage());
                 noprt = emptyReq;

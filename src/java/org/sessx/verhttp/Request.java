@@ -134,13 +134,46 @@ public class Request {
     private static final String URI_TOO_LONG = "414 URI Too Long";
     private static final String VER_NOT_SPT  = "505 HTTP Version Not Supported";
 
-    private byte[] ignoreWhitespaces() throws IOException {
-        InputStream in = this.socket.getInputStream();
+
+    private byte[] ignoreWhitespaces() {
+        InputStream in;
+        try {
+            in = this.socket.getInputStream();
+        } catch(IOException e) {
+            Main.logger.warn(Logger.xcpt2str(e));
+            throw new MessageSyntaxException("empty request");
+        }
         ByteArrayOutputStream read = new ByteArrayOutputStream();
         while(true) {
-            byte b = (byte)in.read();
+            new Thread(() -> {
+                try {
+                    int index = this.index;
+                    int i = 0;
+                    for(; i < 3; i++) {
+                        if(this.index <= index) {
+                            Thread.sleep(500);
+                        } else {
+                            break;
+                        }
+                    }
+                    if(i > 1) {
+                        this.socket.close();
+                    }
+                } catch(Throwable e) {
+                    Main.logger.warn(Logger.xcpt2str(e));
+                }
+            }).start();
+            byte b;
+            try {
+                b = (byte)in.read();
+            } catch(IOException e) {
+                if(!(e instanceof java.net.SocketException && e.getMessage().equals("Socket closed"))) {
+                    Main.logger.warn(Logger.xcpt2str(e));
+                }
+                throw new MessageSyntaxException("empty request");
+            }
             if(b == -1) {
-                break;
+                throw new MessageSyntaxException("empty request");
             } else {
                 this.index++;
                 // skip whitespace
