@@ -28,7 +28,9 @@ public class Sessver implements java.io.Closeable {
     @Override
     public void close() throws IOException {
         Main.logger.info(Main.i18n.get("sessver.close", this.toString()));
-        for(HttpConnection conn : this.conns) conn.close();
+        synchronized(this) {
+            for(HttpConnection conn : this.conns) conn.close();
+        }
         for(ServerSocket ssocket : this.ssockets) ssocket.close();
     }
 
@@ -41,11 +43,19 @@ public class Sessver implements java.io.Closeable {
                     new Thread(() -> {
                         try {
                             this.accept(socket);
-                        } catch(Throwable e) {
-                            Main.logger.err(Logger.xcpt2str(e));
+                        } catch(IOException e) {
+                            if(!(e instanceof java.net.SocketException && e.getMessage().equals("Socket is closed"))) {
+                                Main.logger.err(Logger.xcpt2str(e));
+                            } else {
+                                Main.logger.warn(e.toString());
+                            }
                         }
                     }).start();
                 } catch(Throwable t) {
+                    if(t instanceof java.net.SocketException && t.getMessage().equals("Socket closed")) {
+                        Main.logger.warn(t.toString());
+                        break;
+                    }
                     Main.logger.fatal(Logger.xcpt2str(t));
                     if(++counts > 3) break;
                 }
@@ -56,7 +66,9 @@ public class Sessver implements java.io.Closeable {
     private void accept(Socket socket) throws IOException {
         HttpConnection httpconn = new HttpConnection(socket);
         try {
-            this.conns.add(httpconn);
+            synchronized(this) {
+                this.conns.add(httpconn);
+            }
             httpconn.process();
         } catch(Throwable e) {
             Throwable cause = e.getCause();
@@ -71,7 +83,9 @@ public class Sessver implements java.io.Closeable {
                 new Response(httpconn, e);
             }
         } finally {
-            this.conns.remove(httpconn);
+            synchronized(this) {
+                this.conns.remove(httpconn);
+            }
             httpconn.close();
         }
     }
