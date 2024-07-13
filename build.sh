@@ -20,3 +20,5 @@ else
         run_psb4j ${psb4j_jar_path} || echo "Error: Failed to download psb4j.jar"
     fi
 fi
+
+echo "Warn: This 'build.sh' is deprecated and will be removed in the future. Please use 'make'."
